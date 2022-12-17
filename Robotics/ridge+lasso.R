@@ -2,6 +2,8 @@
 # Ridge + Lasso +elastic #
 ##########################
 
+#FINI#
+
 #Preparation des librairies et des donnees---------------------
 
 #Librarie
@@ -10,6 +12,7 @@ if(!require("glmnet")) {
   library("glmnet")
 }
 
+par(mfrow = c(1, 1))
 #Donnees
 x<-model.matrix(y~.,data)
 y<-data$y
@@ -38,3 +41,4 @@ plot(cv.out.elastic)
 fit.elastic <- glmnet(x.train.regu, y.train.regu, lambda = cv.out.elastic$lambda.min, alpha = .5)
 elastic.predict <- predict(fit.elastic, s = cv.out.elastic$lambda.min, newx = x.test.regu)
 mse.elastic <- mean((elastic.predict - y.test.regu)^2) #0.4138744
+

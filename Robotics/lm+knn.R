@@ -6,6 +6,67 @@
 
 
 #LM---------------------------------
+
+group.outer <- rep((1:10), (n/10)+1)[1:n]
+idx.test.outer <- list()
+idx.test.inner <- list()
+rs.data.inner <- list()
+for(i in 1:10){
+  index.cv <- which(group.outer==i)
+  idx.test.outer[[i]] <- index.cv
+  n.inner <- n - length(index.cv)
+  rs.data.inner[[i]] <- sample(n.inner)
+  group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
+  idx.test.inner[[i]] <- list()
+  for(j in 1:10){
+    index.inner.cv <- which(group.inner==j)
+    idx.test.inner[[i]][[j]] <- index.inner.cv
+  }
+}
+
+
+
+# ______________________________________________________ 
+# ________________ linear reg __________________________
+# ______________________________________________________
+err.lin.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.train <- data[-index.outer.cv,]
+  data.test <- data[index.outer.cv,]
+  
+  # linear regression
+  model.fit <- lm(y~., data=data.train)
+  summary(model.fit)
+  pref <- predict(model.fit, newdata=data.test)
+  err.lin.mse[i] = mean((data.test$y -pref)^2)
+  
+}
+boxplot(err.lin.mse)
+mean(err.lin.mse) #0.04185472
+
+
+
+
+
+
+set.seed(69)
+K<-10
+folds=sample(1:K,n,replace=TRUE)
+CV.lm<-rep(0,10)
+for(i in (1:10)){
+  for(local_k in (1:K)){
+    lm<-lm(y~., data = data[folds!=local_k, ])
+    predLm<-predict(lm,newdata=data[folds==local_k,])
+    CV.lm[i]<-CV.lm[i]+ sum((data[folds==local_k, 9]- predLm)^2)
+  }
+  CV.lm[i]<-CV.lm[i]/n
+}
+plot(1:K, CV.lm, type = 'b', col = 'blue')
+#which.min(CV.lm)
+#CV.noscale[which.min(CV.noscale)]
+min(CV.lm)
+
 lm <- lm(formula = y ~., data = data.train)
 summary(lm)
 lm.res.std <- rstandard(lm)

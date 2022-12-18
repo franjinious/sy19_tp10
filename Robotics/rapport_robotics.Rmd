@@ -74,12 +74,287 @@ if(!require("factoextra")) {
 
 res.pca <- PCA(data, ncp=p, quali.sup = p+1, graph = FALSE)
 #print(res.pca)
-fviz_eig(res.pca, ncp = 8, addlabels = TRUE, ylim = c(0, 40))#On voit que la variance sont expliquee par toutes les variables
+fviz_eig(res.pca, ncp = 8, addlabels = TRUE, ylim = c(0, 20))#On voit que la variance sont expliquee par toutes les variables
 
 ```
 
-On constate avec cette graphe que la variance est expliquée par toutes les variables. Et on en déduit que toutes les méthodes concernant \texttt{Subset Selection} seront pas utiles vu que les variables devraient toutes être incluses.
+On constate avec cette graphe que la variance est expliquée par toutes les variables. Et on en déduit que toutes les méthodes concernant **Subset Selection** eront pas utiles vu que les variables devraient toutes être incluses.
 
 ## Sélection de modèle
 
-freferfe
+On test sur le jeu de données \texttt{Robotics} les méthodes suivantes, que l'on a vues en cours:  
+1. Modèle linéaire
+```{r include=FALSE}
+group.outer <- rep((1:10), (n/10)+1)[1:n]
+idx.test.outer <- list()
+idx.test.inner <- list()
+rs.data.inner <- list()
+for(i in 1:10){
+  index.cv <- which(group.outer==i)
+  idx.test.outer[[i]] <- index.cv
+  n.inner <- n - length(index.cv)
+  rs.data.inner[[i]] <- sample(n.inner)
+  group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
+  idx.test.inner[[i]] <- list()
+  for(j in 1:10){
+    index.inner.cv <- which(group.inner==j)
+    idx.test.inner[[i]][[j]] <- index.inner.cv
+  }
+}
+
+err.lin.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.train <- data[-index.outer.cv,]
+  data.test <- data[index.outer.cv,]
+  
+  # linear regression
+  model.fit <- lm(y~., data=data.train)
+  summary(model.fit)
+  pref <- predict(model.fit, newdata=data.test)
+  err.lin.mse[i] = mean((data.test$y -pref)^2)
+  
+}
+boxplot(err.lin.mse)
+mean(err.lin.mse) #0.04185472
+```
+
+2. La méthode des \textbf{KNN}
+```{r include=FALSE}
+if(!require("FNN")) {
+  install.packages("FNN")
+  library("FNN")
+}
+
+set.seed(69)
+K<-10
+folds=sample(1:K,n,replace=TRUE)
+#CV sans scaling
+CV.noscale<-rep(0,10)
+for(i in (1:10)){
+  for(local_k in (1:K)){
+    knn.noscale<-knn.reg(train = data[folds!=local_k, -9], test = data[folds==local_k,-9], 
+                         y = data[folds!=local_k, 9], k = i)
+    #pred<-predict(reg,newdata=data[folds==k,])
+    CV.noscale[i]<-CV.noscale[i]+ sum((data[folds==local_k, 9]- knn.noscale$pred)^2)
+  }
+  CV.noscale[i]<-CV.noscale[i]/n
+}
+boxplot( CV.noscale)
+#min(CV.noscale)
+```
+
+3. Les méthode de régularization \textbf{Ridge Regression, Lasso Regression, Elastic Regression}
+```{r include=FALSE}
+#Librarie
+if(!require("glmnet")) {
+  install.packages("glmnet")
+  library("glmnet")
+}
+
+par(mfrow = c(1, 1))
+#Donnees
+x<-model.matrix(y~.,data)
+y<-data$y
+
+#Ridge regression----------------------------
+#cv.out.ridge <- cv.glmnet(x.train.regu, y.train.regu, alpha = 0, type.measure = "mse")
+#plot(cv.out.ridge)
+#fit.ridge <- glmnet(x.train.regu, y.train.regu, lambda = cv.out.ridge$lambda.min, alpha = 0)
+#ridge.predict <- predict(fit.ridge, s = cv.out.ridge$lambda.min, newx = x.test.regu)
+#mse.ridge <- mean((ridge.predict - y.test.regu) ^ 2)#0.04147
+
+#CV
+group.outer <- rep((1:10), (n/10)+1)[1:n]
+idx.test.outer <- list()
+idx.test.inner <- list()
+rs.data.inner <- list()
+for(i in 1:10){
+  index.cv <- which(group.outer==i)
+  idx.test.outer[[i]] <- index.cv
+  n.inner <- n - length(index.cv)
+  rs.data.inner[[i]] <- sample(n.inner)
+  group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
+  idx.test.inner[[i]] <- list()
+  for(j in 1:10){
+    index.inner.cv <- which(group.inner==j)
+    idx.test.inner[[i]][[j]] <- index.inner.cv
+  }
+}
+err.rid.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  # re-sampling (inner cross validation)
+  alpha <- 0
+  
+  # validation model 
+  x.train.regu <- data.matrix(data.inner[, -ncol(data)])
+  y.train.regu <- data.inner[, ncol(data)]
+  x.test.regu <- data.matrix(data.validation[, -ncol(data)])
+  y.test.regu <- data.validation[, ncol(data)]
+  cv.model <- cv.glmnet(x.train.regu, y.train.regu, alpha = alpha)
+  model.fit <- glmnet(x.train.regu, y.train.regu, lambda = cv.model$lambda.min, alpha = alpha)
+  err.rid.mse[i] <- mean((y.test.regu - predict(model.fit, newx=x.test.regu))^2)
+}
+boxplot(err.rid.mse)
+#mean(err.rid.mse) #0.419
+
+#Lasso regression-----------------------------
+#CV
+err.las.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  # re-sampling (inner cross validation)
+  alpha <- 1
+  
+  # validation model 
+  x.train.regu <- data.inner[, -ncol(data)]
+  y.train.regu <- data.inner[, ncol(data)]
+  x.test.regu <- data.validation[, -ncol(data)]
+  y.test.regu <- data.validation[, ncol(data)]
+  cv.model <- cv.glmnet(data.matrix(x.train.regu), y.train.regu, alpha = alpha)
+  model.fit <- glmnet(data.matrix(x.train.regu), y.train.regu, lambda = cv.model$lambda.min, alpha = alpha)
+  err.las.mse[i] <- mean((y.test.regu - predict(model.fit, newx=data.matrix(x.test.regu)))^2)
+}
+
+#boxplot(err.las.mse)
+#mean(err.las.mse) #0.04185563
+
+#elastic-----------------------------
+#CV
+n.alpha <- 10
+err.ela.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  # re-sampling (inner cross validation)
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  alphas <- seq(0, 1, length.out =  n.alpha)
+  ela.inner.mse <- rep(0, n.alpha)
+  best.lambda.alpha <- rep(0, n.alpha)
+  for(k in 1:length(alphas)){
+    for(j in 1:10){ 
+      index.inner.cv <- idx.test.inner[[i]][[j]] 
+      data.train <- data.inner[-index.inner.cv, ]
+      data.test <- data.inner[index.inner.cv, ]
+      
+      alpha <- alphas[k]
+      print(alpha)
+      X.cv.train <- data.matrix(data.inner[, -ncol(data)])
+      y.cv.train <- data.inner[, ncol(data)]
+      cv.model <- cv.glmnet(X.cv.train, y.cv.train, alpha=alpha)
+      ela.inner.mse[k] <- ela.inner.mse[k] + cv.model$cvm[which(cv.model$lambda == cv.model$lambda.min)]
+    }
+  }
+  idx.best <- which(ela.inner.mse == min(ela.inner.mse))
+  best.lambda <- best.lambda.alpha[idx.best]
+  best.alpha <- alphas[idx.best]
+  # validation model 
+  x.train.regu <- data.matrix(data.inner[, -ncol(data)])
+  y.train.regu <- data.inner[, ncol(data)]
+  x.test.regu <- data.matrix(data.validation[, -ncol(data)])
+  y.test.regu <- data.validation[, ncol(data)]
+  cv.model <- cv.glmnet(x.train.regu, y.train.regu, alpha=best.alpha)
+  model.fit <- glmnet(x.train.regu, y.train.regu, lambda = cv.model$lambda.min, alpha = best.alpha)
+  err.ela.mse[i] <- mean((y.test.regu - predict(model.fit, newx=x.test.regu))^2)
+}
+#plot(x = alphas, y = ela.inner.mse/10, type='l', ylab='Cv(alpha) Error', xlab="alpha")
+#boxplot(err.ela.mse)
+#mean(err.ela.mse)
+
+```
+
+4. Les méthode \textbf{Subset Selection}
+5. La méthode des \textbf{Splines}
+6. \textbf{SVM}
+```{r}
+#Package
+if(!require("kernlab")) {
+  install.packages("kernlab")
+  library("kernlab")
+}
+#CV
+CC<-c(0.001,0.01,0.1,1,100)#,1000)
+epsilon <- seq(0, 1, 0.1)
+N<-length(CC)
+M<-5 # nombre de r??p??titions de la validation crois??e
+
+
+#SVM lineaire-----------------------------------
+#Cross validation pour la valeur de C
+errLin<-matrix(0,N,M)
+
+set.seed(69)
+for(k in 1:M){
+  for(i in 1:N){
+    errLin[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="vanilladot",C=CC[i],cross = 5))
+  }
+}
+Err<-rowMeans(errLin)
+plot(CC,Err,type="b",log="x",xlab="C",ylab="CV error")
+which.min(Err)
+
+svmLinFit <- ksvm(y ~.,data = data.train, type="eps-svr",
+                  kernel="vanilladot",C=CC[which.min(Err)])
+svmLinPre <- predict(svmLinFit, newdata = x.test)
+mean((svmLinPre-y.test)^2)#0.04289
+
+#SVM laplacien--------------------------------
+#Cross validation pour la valeur de C
+#CC<-c(0.001,0.01,0.1,1,10,100)
+#N<-length(CC)
+#M<-5 # nombre de r??p??titions de la validation crois??e
+errLap<-matrix(0,N,M)
+
+set.seed(69)
+for(k in 1:M){
+  for(i in 1:N){
+    errLap[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="laplacedot",C=CC[i],cross = M))
+  }
+}
+ErrLap<-rowMeans(errLap)
+plot(CC,ErrLap,type="b",log="x",xlab="C",ylab="CV error")
+which.min(ErrLap)
+svmLapFit <- ksvm(y ~.,data = data.train, type="eps-svr",kernel="laplacedot",C=CC[which.min(ErrLap)])
+svmLapPre <- predict(svmLapFit, newdata = x.test)
+mean((svmLapPre-y.test)^2)#0.008838603
+
+
+#SVM Gaussian--------------------------------
+#Cross validation pour la valeur de C
+#CC<-c(0.001,0.01,0.1,1,10,100)
+#N<-length(CC)
+#M<-5 # nombre de r??p??titions de la validation crois??e
+errGau<-matrix(0,N,M)
+
+set.seed(69)
+for(k in 1:M){
+  for(i in 1:N){
+    errGau[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="rbfdot",C=CC[i],cross = M))
+  }
+}
+ErrGau<-rowMeans(errGau)
+plot(CC,ErrGau,type="b",log="x",xlab="C",ylab="CV error")
+which.min(ErrGau)
+svmGauFit <- ksvm(y ~.,data = data.train, type="eps-svr",kernel="rbfdot",C=100)#CC[which.min(ErrGau)])
+svmGauPre <- predict(svmGauFit, newdata = x.test)
+mean((svmGauPre-y.test)^2)#0.007565551 0.00703(C=100)
+
+```
+
+7. \textbf{L'Arbre de Décision}
+```{r}
+#Package
+if(!require("rpart")) {
+  install.packages("rpart")
+  library("rpart")
+}
+
+```
+
+Dans les différents modèles que l'on a utilisé, on a calculé l'erreur quadratique en appliquant la méthode \textbf{Cross validation} avec 10-folds. Dans certains cas, on l'a également utilisé pour trouver l'hyper-paramètre.

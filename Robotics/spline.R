@@ -85,7 +85,7 @@ for (i in 1:10) {
                          +ns(X4, p.sequences[p])+ns(X5, p.sequences[p])+ns(X6, p.sequences[p])
                          +ns(X7, p.sequences[p])+ns(X8, p.sequences[p]), data=data.train.ns) 
       model.pred <- predict(model.spline,newdata=data.test.ns)
-      sp.pmin[p] <-  sp.pmin[p] + mean((y.test -model.pred)^2)
+      sp.pmin[p] <-  sp.pmin[p] + mean((data.test.ns[, 9] -model.pred)^2)
     }
   }
   idx.pmin <- which(min(sp.pmin) == sp.pmin)
@@ -98,7 +98,7 @@ for (i in 1:10) {
                       +ns(X4, p.sequences[p])+ns(X5, p.sequences[p])+ns(X6, p.sequences[p])
                       +ns(X7, p.sequences[p])+ns(X8, p.sequences[p]), data=data.train.ns)
   pred <- predict(naturalspline, newdata=data.test.ns)
-  err.splinesnaturel.mse[i] = mean((y.test -pred)^2)
+  err.splinesnaturel.mse[i] = mean((data.test.ns[, 9] -pred)^2)
 }
 
 mean(err.splinesnaturel.mse)#0.1033425
@@ -123,7 +123,7 @@ for (i in 1:10) {
                          +s(X4, p.sequences[p])+s(X5, p.sequences[p])+s(X6, p.sequences[p])
                          +s(X7, p.sequences[p])+s(X8, p.sequences[p]), data=data.train.sp) 
       model.pred <- predict(model.spline,newdata=data.test.sp)
-      sp.pmin[p] <-  sp.pmin[p] + mean((y.test -model.pred)^2)
+      sp.pmin[p] <-  sp.pmin[p] + mean((data.test.sp -model.pred)^2)
     }
   }
   idx.pmin <- which(min(sp.pmin) == sp.pmin)

@@ -13,13 +13,14 @@ if(!require("kernlab")) {
 CC<-c(0.001,0.01,0.1,1,100)#,1000)
 epsilon <- seq(0, 1, 0.1)
 N<-length(CC)
-M<-5 # nombre de r¨¦p¨¦titions de la validation crois¨¦e
+M<-5 # nombre de r??p??titions de la validation crois??e
 
 
 #SVM lineaire-----------------------------------
 #Cross validation pour la valeur de C
 errLin<-matrix(0,N,M)
 
+set.seed(69)
 for(k in 1:M){
   for(i in 1:N){
     errLin[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="vanilladot",C=CC[i],cross = 5))
@@ -38,9 +39,10 @@ mean((svmLinPre-y.test)^2)#0.04289
 #Cross validation pour la valeur de C
 #CC<-c(0.001,0.01,0.1,1,10,100)
 #N<-length(CC)
-#M<-5 # nombre de r¨¦p¨¦titions de la validation crois¨¦e
+#M<-5 # nombre de r??p??titions de la validation crois??e
 errLap<-matrix(0,N,M)
 
+set.seed(69)
 for(k in 1:M){
   for(i in 1:N){
     errLap[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="laplacedot",C=CC[i],cross = M))
@@ -58,9 +60,10 @@ mean((svmLapPre-y.test)^2)#0.008838603
 #Cross validation pour la valeur de C
 #CC<-c(0.001,0.01,0.1,1,10,100)
 #N<-length(CC)
-#M<-5 # nombre de r¨¦p¨¦titions de la validation crois¨¦e
+#M<-5 # nombre de r??p??titions de la validation crois??e
 errGau<-matrix(0,N,M)
 
+set.seed(69)
 for(k in 1:M){
   for(i in 1:N){
     errGau[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="rbfdot",C=CC[i],cross = M))

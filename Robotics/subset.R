@@ -19,4 +19,4 @@ rsquareMaxBestSub <- sumBestSub$outmat[which.max(sumBestSub$adjr2),]#La ligne av
 rsquareMaxBestSub[rsquareMaxBestSub == '*'] <- as.numeric(1)
 rsquareMaxBestSub[rsquareMaxBestSub == ' '] <- as.numeric(0)
 rsquareMaxBestSub <- as.numeric(rsquareMaxBestSub)#Le masque pour s??lectionner les variables
-regBestSub <- reg.set[c(rsquare_max_forward==1)]
+regBestSub <- data.train[c(rsquareMaxBestSub==1)]

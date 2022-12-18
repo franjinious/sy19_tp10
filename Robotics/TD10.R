@@ -1,4 +1,4 @@
-setwd("D:/文档/SY19/TD/TD10")
+setwd("D:/文档/SY19/TD/TD4/sy19_tp10/Robotics")
 
 data <- read.table("robotics_train.txt", header = TRUE)
 data.scale <- scale(data)

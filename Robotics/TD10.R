@@ -6,6 +6,7 @@ data1 <- read.table("phoneme_train.txt", header = TRUE)
 data2 <- read.csv("communities_train.csv")
 #Robotics
 
+boxplot(as.data.frame(data[, 1:8]))
 
 #Partition des donnees
 set.seed(69)
@@ -66,7 +67,7 @@ if(!require("factoextra")) {
 
 res.pca <- PCA(data, ncp=p, quali.sup = p+1, graph = FALSE)
 print(res.pca)
-fviz_eig(res.pca, ncp = 15, addlabels = TRUE, ylim = c(0, 60))#On voit que la variance sont expliquee par toutes les variables
+fviz_eig(res.pca, ncp = 8, addlabels = TRUE, ylim = c(0, 60))#On voit que la variance sont expliquee par toutes les variables
 
 #pca <- princomp(data[,1:p]) 
 #x.pca <- cbind(as.data.frame(pca$scores[,1:15]),y)

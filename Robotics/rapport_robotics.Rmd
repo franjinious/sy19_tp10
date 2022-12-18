@@ -1,0 +1,85 @@
+---
+title: "Robotics"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+  html_notebook: default
+---
+
+# \texttt{Robotics} dataset
+
+Le jeu de données d'apprentissage de ce problème représente la cinématique du bras d'un robot. Les predicteurs ainsi la réponse données sont toutes de type numérique. Le but est de trouver la relation de la réponse \texttt{y} et les 8 prédicteurs \texttt{X1, X2, X3, X4, X5, X6, X7, X8}. Il s'agit bien d'un problème de régression.
+
+```{r include=FALSE  }
+#Preparation des donnees
+data <- read.table("robotics_train.txt", header = TRUE)
+data.scale <- scale(data)
+
+set.seed(69)
+n <- nrow(data)
+p <- ncol(data) - 1
+percentage <- 2/3
+set.seed(69)
+ntrain <- as.integer(n * percentage)
+ntest <- n - ntrain
+id.train <- sample(n, ntrain)
+data.train <- data[id.train, ]
+data.train.scale <- scale(data[id.train, ])
+
+data.test <- data[-id.train, ]
+
+y.train <- data.train[, 9]
+x.train <- data.train[, -9]
+y.test <- data.test[, 9]
+x.test <- data.test[, -9]
+
+x.train.scale <- scale(data.train[, -9])
+x.test.scale <- scale(data.test[, -9])
+```
+
+
+## Analyse exploratoire
+
+Dans un premier temps, on essaie de regarder la plage de toutesl es données.
+```{r echo=FALSE, fig.align='center', out.height='80%', out.width='50%'}
+boxplot(as.data.frame(data[, 1:8]))
+```
+
+On observe que la plage de données est très homogène, ce qui nous donne la possibilité  d'explorer nos données sans faire un scaling.
+
+Ensuite on vérifie la corrélation entre les variables.
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.height='60%', out.width='50%'}
+if(!require("corrplot")) {
+  install.packages("corrplot")
+  library("corrplot")
+}
+
+mcor <- cor(data[,c(1:9)])
+corrplot(mcor, type="upper",method = "number",order="hclust", tl.col="black", tl.srt=45)#Les variables ne sont pas fortement correle
+
+```
+
+On constate qu'il existe pas de corrélations significatives entre les variables, seule de faibles corrélations entre la réponse et les prédicteurs. Cette graphe exclut le besoin d'enlever certaines variables puisqu'elles sont peu corrélées. On confirme cette observation en faisant une ACP
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.height='80%', out.width='50%'}
+if(!require("FactoMineR")) {
+  install.packages("FactoMineR")
+  library("FactoMineR")
+}
+
+if(!require("factoextra")) {
+  install.packages("factoextra")
+  library("factoextra")
+}
+
+res.pca <- PCA(data, ncp=p, quali.sup = p+1, graph = FALSE)
+#print(res.pca)
+fviz_eig(res.pca, ncp = 8, addlabels = TRUE, ylim = c(0, 40))#On voit que la variance sont expliquee par toutes les variables
+
+```
+
+On constate avec cette graphe que la variance est expliquée par toutes les variables. Et on en déduit que toutes les méthodes concernant \texttt{Subset Selection} seront pas utiles vu que les variables devraient toutes être incluses.
+
+## Sélection de modèle
+
+freferfe

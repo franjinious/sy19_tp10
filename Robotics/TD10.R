@@ -1,4 +1,4 @@
-setwd("D:/ÎÄµµ/SY19/TD/TD10")
+setwd("D:/æ–‡æ¡£/SY19/TD/TD10")
 
 data <- read.table("robotics_train.txt", header = TRUE)
 data.scale <- scale(data)

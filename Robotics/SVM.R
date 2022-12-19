@@ -2,6 +2,24 @@
 # SVM #
 #######
 
+#Preparation des indexes-----------------
+group.outer <- rep((1:10), (n/10)+1)[1:n]
+idx.test.outer <- list()
+idx.test.inner <- list()
+rs.data.inner <- list()
+for(i in 1:10){
+  index.cv <- which(group.outer==i)
+  idx.test.outer[[i]] <- index.cv
+  n.inner <- n - length(index.cv)
+  rs.data.inner[[i]] <- sample(n.inner)
+  group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
+  idx.test.inner[[i]] <- list()
+  for(j in 1:10){
+    index.inner.cv <- which(group.inner==j)
+    idx.test.inner[[i]][[j]] <- index.inner.cv
+  }
+}
+
 #FINI#
 
 #Package
@@ -27,7 +45,7 @@ for(k in 1:M){
   }
 }
 Err<-rowMeans(errLin)
-plot(CC,Err,type="b",log="x",xlab="C",ylab="CV error")
+plot(CC,Err,type="b",log="x",xlab="C pour linear kernel",ylab="CV error")
 which.min(Err)
 
 svmLinFit <- ksvm(y ~.,data = data.train, type="eps-svr",
@@ -35,11 +53,28 @@ svmLinFit <- ksvm(y ~.,data = data.train, type="eps-svr",
 svmLinPre <- predict(svmLinFit, newdata = x.test)
 mean((svmLinPre-y.test)^2)#0.04289
 
+#CV
+err.svmlin.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  
+  y.test.svmLin <- data.validation[, ncol(data)]
+  svmfit<-ksvm(y~.,data=data.inner,scaled=TRUE,type="eps-svr", kernel="vanilladot",C=0.01)
+  yhat<-predict(svmfit,newdata=data.validation) 
+  err.svmlin.mse[i] <- mean((y.test.svmLin - yhat)^2)
+}
+boxplot(err.svmlin.mse)
+mean(err.svmlin.mse) # 0.0427
+
+
 #SVM laplacien--------------------------------
 #Cross validation pour la valeur de C
-#CC<-c(0.001,0.01,0.1,1,10,100)
-#N<-length(CC)
-#M<-5 # nombre de r??p??titions de la validation crois??e
+CC<-c(0.001,0.01,0.1,1,10,100, 1000, 10000)
+N<-length(CC)
+M<-5 # nombre de r??p??titions de la validation crois??e
 errLap<-matrix(0,N,M)
 
 set.seed(69)
@@ -49,11 +84,29 @@ for(k in 1:M){
   }
 }
 ErrLap<-rowMeans(errLap)
-plot(CC,ErrLap,type="b",log="x",xlab="C",ylab="CV error")
+plot(CC,ErrLap,type="b",log="x",xlab="C pour laplace kernel",ylab="CV error")
 which.min(ErrLap)
-svmLapFit <- ksvm(y ~.,data = data.train, type="eps-svr",kernel="laplacedot",C=CC[which.min(ErrLap)])
+svmLapFit <- ksvm(y ~.,data = data.train, type="eps-svr",kernel="laplacedot",C=100)
 svmLapPre <- predict(svmLapFit, newdata = x.test)
 mean((svmLapPre-y.test)^2)#0.008838603
+
+
+#CV
+set.seed(69)
+err.svmlap.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  y.test.svmLap <- data.validation[, ncol(data)]
+  svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="laplacedot",C=100)
+  yhat<-predict(svmfit,newdata=data.validation) 
+  err.svmlap.mse[i] <- mean((y.test.svmLap - yhat)^2)
+}
+boxplot(err.svmlap.mse)
+mean(err.svmlap.mse) # 0.007916768
 
 
 #SVM Gaussian--------------------------------
@@ -76,3 +129,32 @@ svmGauFit <- ksvm(y ~.,data = data.train, type="eps-svr",kernel="rbfdot",C=100)#
 svmGauPre <- predict(svmGauFit, newdata = x.test)
 mean((svmGauPre-y.test)^2)#0.007565551 0.00703(C=100)
 
+
+#CV
+set.seed(69)
+err.svmgau.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  y.test.svmgau <- data.validation[, ncol(data)]
+  svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="rbfdot",C=100)
+  yhat<-predict(svmfit,newdata=data.validation) 
+  err.svmgau.mse[i] <- mean((y.test.svmgau - yhat)^2)
+}
+boxplot(err.svmgau.mse)
+mean(err.svmgau.mse) # 0.006989074
+
+
+#CARET------------------
+#if(!require("caret")) {
+#  install.packages("caret")
+#  library("caret")
+#}
+#set.seed(69)
+#train_control <- trainControl(method="repeatedcv", number=10, repeats=3)
+#svm1 <- train(y ~., data = data.train, method = "svmLinear", trControl = train_control, tuneGrid = expand.grid(C = seq(0, 2, length = 20)))
+#View the model
+#plot(svm1, , type = 'b', col = 'blue', xlab = "K(Scale)")

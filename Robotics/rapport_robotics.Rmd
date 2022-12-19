@@ -12,6 +12,8 @@ Le jeu de données d'apprentissage de ce problème représente la cinématique d
 
 ```{r include=FALSE  }
 #Preparation des donnees
+setwd("D:/文档/SY19/TD/TD4/sy19_tp10/Robotics")
+
 data <- read.table("robotics_train.txt", header = TRUE)
 data.scale <- scale(data)
 
@@ -37,15 +39,15 @@ x.train.scale <- scale(data.train[, -9])
 x.test.scale <- scale(data.test[, -9])
 ```
 
-
 ## Analyse exploratoire
 
 Dans un premier temps, on essaie de regarder la plage de toutesl es données.
+
 ```{r echo=FALSE, fig.align='center', out.height='80%', out.width='50%'}
 boxplot(as.data.frame(data[, 1:8]))
 ```
 
-On observe que la plage de données est très homogène, ce qui nous donne la possibilité  d'explorer nos données sans faire un scaling.
+On observe que la plage de données est très homogène, ce qui nous donne la possibilité d'explorer nos données sans faire un scaling.
 
 Ensuite on vérifie la corrélation entre les variables.
 
@@ -60,7 +62,8 @@ corrplot(mcor, type="upper",method = "number",order="hclust", tl.col="black", tl
 
 ```
 
-On constate qu'il existe pas de corrélations significatives entre les variables, seule de faibles corrélations entre la réponse et les prédicteurs. Cette graphe exclut le besoin d'enlever certaines variables puisqu'elles sont peu corrélées. On confirme cette observation en faisant une ACP
+On constate qu'il existe pas de corrélations significatives entre les variables, seule de faibles corrélations entre la réponse et les prédicteurs. Ce graphe exclut le besoin d'enlever certaines variables puisqu'elles sont peu corrélées. On confirme cette observation en faisant une ACP
+
 ```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.height='80%', out.width='50%'}
 if(!require("FactoMineR")) {
   install.packages("FactoMineR")
@@ -78,12 +81,14 @@ fviz_eig(res.pca, ncp = 8, addlabels = TRUE, ylim = c(0, 20))#On voit que la var
 
 ```
 
-On constate avec cette graphe que la variance est expliquée par toutes les variables. Et on en déduit que toutes les méthodes concernant **Subset Selection** eront pas utiles vu que les variables devraient toutes être incluses.
+On constate avec ce graphe que la variance est expliquée par toutes les variables. Et on en déduit que toutes les méthodes concernant **Subset Selection** eront pas utiles vu que les variables devraient toutes être incluses.
 
 ## Sélection de modèle
 
-On test sur le jeu de données \texttt{Robotics} les méthodes suivantes, que l'on a vues en cours:  
+On test sur le jeu de données \texttt{Robotics} les méthodes suivantes, que l'on a vues en cours:\
+
 1. Modèle linéaire
+
 ```{r include=FALSE}
 group.outer <- rep((1:10), (n/10)+1)[1:n]
 idx.test.outer <- list()
@@ -117,9 +122,12 @@ for(i in 1:10){
 }
 boxplot(err.lin.mse)
 mean(err.lin.mse) #0.04185472
+
+
 ```
 
-2. La méthode des \textbf{KNN}
+2.  La méthode des \textbf{KNN}
+
 ```{r include=FALSE}
 if(!require("FNN")) {
   install.packages("FNN")
@@ -142,10 +150,32 @@ for(i in (1:10)){
 }
 boxplot( CV.noscale)
 #min(CV.noscale)
+
+#CV avec scaling
+set.seed(69)
+CV.scale<-rep(0,10)
+for(i in (1:10)){
+  for(local_k in (1:K)){
+    knn.scale<-knn.reg(train = data.scale[folds!=local_k, -9], test = data.scale[folds==local_k,-9], 
+                       y = data.scale[folds!=local_k, 9], k = i)
+    #pred<-predict(reg,newdata=data[folds==k,])
+    CV.scale[i]<-CV.scale[i]+ sum((data.scale[folds==local_k, 9]- knn.scale$pred)^2)
+  }
+  CV.scale[i]<-CV.scale[i]/n
+}
+plot(1:K, CV.scale, type = 'b', col = 'red')
+which.min(CV.scale)
+CV.scale[which.min(CV.scale)]
+
+data.frame("scale" = c("NON","OUI"), "k" = c(which.min(CV.noscale), which.min(CV.scale)), 
+           "MSE" = c(CV.noscale[which.min(CV.noscale)], CV.scale[which.min(CV.scale)]))
+cat("On voit que KNN fonctionne mieux que le modele lineaire")#0.01608
+
 ```
 
-3. Les méthode de régularization \textbf{Ridge Regression, Lasso Regression, Elastic Regression}
-```{r include=FALSE}
+3.  Les méthode de régularization \textbf{Ridge Regression, Lasso Regression, Elastic Regression}
+
+```{r eval=FALSE, include=FALSE}
 #Librarie
 if(!require("glmnet")) {
   install.packages("glmnet")
@@ -199,7 +229,7 @@ for(i in 1:10){
   err.rid.mse[i] <- mean((y.test.regu - predict(model.fit, newx=x.test.regu))^2)
 }
 boxplot(err.rid.mse)
-#mean(err.rid.mse) #0.419
+#mean(err.rid.mse) #0.0419
 
 #Lasso regression-----------------------------
 #CV
@@ -269,10 +299,11 @@ for(i in 1:10){
 
 ```
 
-4. Les méthode \textbf{Subset Selection}
-5. La méthode des \textbf{Splines}
-6. \textbf{SVM}
-```{r}
+4.  Les méthode \textbf{Subset Selection}
+5.  La méthode des \textbf{Splines}
+6.  \textbf{SVM}
+
+```{r eval=FALSE, include=FALSE}
 #Package
 if(!require("kernlab")) {
   install.packages("kernlab")
@@ -347,14 +378,200 @@ mean((svmGauPre-y.test)^2)#0.007565551 0.00703(C=100)
 
 ```
 
-7. \textbf{L'Arbre de Décision}
-```{r}
+7.  \textbf{L'Arbre de Décision}
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 #Package
 if(!require("rpart")) {
   install.packages("rpart")
   library("rpart")
 }
 
+if(!require("rpart.plot")) {
+  install.packages("rpart.plot")
+  library("rpart.plot")
+}
+
+if(!require("randomForest")) {
+  install.packages("randomForest")
+  library("randomForest")
+}
+
+
+#Fit Decision Tree avec CV
+group.outer <- rep((1:10), (n/10)+1)[1:n]
+idx.test.outer <- list()
+idx.test.inner <- list()
+rs.data.inner <- list()
+for(i in 1:10){
+  index.cv <- which(group.outer==i)                 
+  idx.test.outer[[i]] <- index.cv
+  n.inner <- n - length(index.cv)
+  rs.data.inner[[i]] <- sample(n.inner)
+  group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
+  idx.test.inner[[i]] <- list()
+  for(j in 1:10){
+    index.inner.cv <- which(group.inner==j)
+    idx.test.inner[[i]][[j]] <- index.inner.cv
+  }
+}
+err.tree.mse <- rep(0,10)
+
+for (i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  
+  data.train.tree <- data.inner
+  data.test.tree <- data.validation
+  
+  model.tree <- rpart(y~., data=data.train.tree, method="anova", control = rpart.control(xval = 10, minbucket = 2))
+  pred <- predict(model.tree, newdata=data.test.tree)
+  err.tree.mse[i] = mean((data.test.tree$y -pred)^2)
+}
+
+fitDT<-rpart(y~.,data=data.train,method="anova")
+rpart.plot(fitDT, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
+
+
+#Prune
+err.tree.mse.prune <- rep(0,10)
+
+for (i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  
+  data.train.tree <- data.inner
+  data.test.tree <- data.validation
+  
+  model.tree <- rpart(y~., data=data.train.tree, method="anova", control = rpart.control(xval = 10, minbucket = 2))
+  pred <- predict(model.tree, newdata=data.test.tree)
+  err.tree.mse[i] = mean((data.test.tree$y -pred)^2)
+  i.min<-which.min(model.tree$cptable[,4])
+  cp.opt1<-model.tree$cptable[i.min,1]
+  
+  pruned_tree <- prune(model.tree, cp=cp.opt1)
+  preDT.prune <- predict(pruned_tree, newdata = data.test.tree)
+  err.tree.mse.prune[i] <- mean((data.test.tree[, 9] - preDT.prune)^2)#0.0472833
+}
+boxplot(err.tree.mse, err.tree.mse.prune)
+
+
+#Bagging
+group.outer <- rep((1:10), (n/10)+1)[1:n]
+idx.test.outer <- list()
+idx.test.inner <- list()
+rs.data.inner <- list()
+for(i in 1:10){
+  index.cv <- which(group.outer==i)
+  idx.test.outer[[i]] <- index.cv
+  n.inner <- n - length(index.cv)
+  rs.data.inner[[i]] <- sample(n.inner)
+  group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
+  idx.test.inner[[i]] <- list()
+  for(j in 1:10){
+    index.inner.cv <- which(group.inner==j)
+    idx.test.inner[[i]][[j]] <- index.inner.cv
+  }
+}
+
+err.randomForest.mse <- rep(0,10)
+err.gam.mse <- rep(0,10)
+
+p.sequences <- seq(1,10)
+
+set.seed(69)
+#Modele avec validation croisee interne
+for (i in 1:10) {
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  data.train.RF <- data.inner[-index.inner.cv, ]
+  data.test.RF <- data.inner[index.inner.cv, ]
+  
+  fitRF<-randomForest(y~.,data=data.train.RF,mtry = p)
+  preRF <- predict(fitRF, newdata = data.test.RF)
+  err.randomForest.mse[i] = mean((data.test.RF[, 9] - preRF)^2)
+}
+
+mean(err.randomForest.mse)#0.02532425
+
 ```
 
 Dans les différents modèles que l'on a utilisé, on a calculé l'erreur quadratique en appliquant la méthode \textbf{Cross validation} avec 10-folds. Dans certains cas, on l'a également utilisé pour trouver l'hyper-paramètre.
+
+Pour commencer on a fait une linéaire régression. En regardant le \texttt{Summary}, on a observé que toutes les variables étaient significatives, c'est ce à quoi on s'attend puisque elles sont peu corrélées. Néanmoins, la \texttt{Adjusted R-squared} est inférieure à 0.5, ce qui rélève qu'elles n'expliquent pas beaucoup la volatilité de la variable \texttt{y} à prédire. Le modèle linéaire donne une erreur en moyenne 0.04185.
+
+On a ensuite effectué une régression en utilisant \textbf{KNN}. En utilisant \textbf{Cross validation}, on a trouvé le meilleur nombre de voisin 7 pour les données avec/sans scaling. On obtient une erreur en moyenne 0.016 pour les deux modèles, mais il n'existe pas un grand écart entre le modèle avec scaling et celui sans scaling.
+
+```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="50%"}
+if(!require("caret")) {
+  install.packages("caret")
+  library("caret")
+}
+set.seed(69)
+knnFit.noscale <- train(x.train, y.train,
+                        method = 'knn',
+                        tuneLength = 20,
+                        trControl = trainControl(method = 'cv'))
+knnFit.scale <- train(x.train.scale, y.train,
+                      method = 'knn',
+                      tuneLength = 20,
+                      trControl = trainControl(method = 'cv'))
+
+trellis.par.set(caretTheme())
+par(mfrow = c(1, 1)) 
+
+plot(knnFit.noscale, type = 'b', col = 'blue', xlab = "K(Avec scalling)")
+plot(knnFit.scale, type = 'b', col = 'red', xlab = "K(Sans Scaling)")
+
+
+```
+
+On a ensuite appluqué les méthodes de régularisation Ridge, Lasso et ElasticNet. La régression Ridge ne permet pas de séléctionner les prédicteurs et elle les inclut tous. La régression Lasso, quant à elle, permet de réduire le coefficient de certains prédicteurs à 0, elle est donc une méthode de sélection de variables. La méthode ElasticNet est comprise entre les deux dernière. Elle permet d'effectuer une sélection de modèle et réduire le coefficient des variables corrélées. On a estimé le paramètre de cette méthode en le faisant varier entre (0, 1).
+
+SPLINES A FAIRE
+
+On a appliqué de différentes méthodes concernant l'arbre des décision. Dans un premier temps, on a appliqué l'arbre de décicion classique. On pourrait savoir l'importance de chaque prédicteur en affichant l'arbre complet. Pour que les résultats soient plus précises, on a ainsi utilisé \textbf{Prune} et \textbf{Bagging}. L'arbre de décision reste inchangé avec \textbf{Prune}
+
+```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="50%", fig.cap=c("A gauche : l'arbre initial; A droite : l'arbre élagué")}
+if(!require("rpart")) {
+  install.packages("rpart")
+  library("rpart")
+}
+
+if(!require("rpart.plot")) {
+  install.packages("rpart.plot")
+  library("rpart.plot")
+}
+
+if(!require("randomForest")) {
+  install.packages("randomForest")
+  library("randomForest")
+}
+
+fitDT<-rpart(y~.,data=data.train,method="anova")
+rpart.plot(fitDT, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
+
+model.tree <- rpart(y~., data=data.train, method="anova", control = rpart.control(xval = 10, minbucket = 2))
+i.min<-which.min(model.tree$cptable[,4])
+cp.opt1<-model.tree$cptable[i.min,1]
+
+pruned_tree <- prune(model.tree, cp=cp.opt1)
+rpart.plot(pruned_tree, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
+
+```
+
+Enfin, on a appliqué le modèle SVM en utilisant de différent noyaux. Les noyaux le plus performants qu'on a observé sont le noyau laplacien et le noyeau gaussien. Pour estimer la valeur de l'hyper-paramètre C, on a utilisé \textbf{Cross validation}
+```{r echo=FALSE, fig.align='default', fig.cap="Le choix de l'hyper-paramètre pour Linear Kernel, Laplace Kernel, Gaussian Kernel", fig.show='hold', message=FALSE, warning=FALSE, out.height="30%", out.width="30%"}
+knitr::include_graphics(c("./cv.svmLin.bmp","./cv.svmLap.png", "./cv.svmGau.bmp"))
+```
+
+On a ensuite appluqué les méthodes de régularisation Ridge, Lasso et ElasticNet. La régression Ridge ne permet pas de séléctionner les prédicteurs et elle les inclut tous. La régression Lasso, quant à elle, permet de réduire le coefficient de certains prédicteurs à 0, elle est donc une méthode de sélection de variables. La méthode ElasticNet est comprise entre les deux dernière. Elle permet d'effectuer une sélection de modèle et réduire le coefficient des variables corrélées. On a estimé le paramètre de cette méthode en le faisant varier entre (0, 1).
+
+SPLINES A FAIRE
+
+On a appliqué de différentes méthodes concernant l'arbre des décision. Dans un premier temps, on a appliqué l'arbre de décicion classique. On pourrait savoir l'importance de chaque prédicteur en affichant l'arbre complet. Pour que les résultats soient plus précises, on a ainsi utilisé \textbf{Prune} et \textbf{Bagging}. L'arbre de décision reste inchangé avec \textbf{Prune}

@@ -163,7 +163,7 @@ knnFit.noscale <- train(x.train, y.train,
                         method = 'knn',
                         tuneLength = 20,
                         trControl = trainControl(method = 'cv'))
-knnFit.scale <- train(x.train.scale, as.numeric(y.train.scale),
+knnFit.scale <- train(x.train.scale, y.train,
                       method = 'knn',
                       tuneLength = 20,
                       trControl = trainControl(method = 'cv'))

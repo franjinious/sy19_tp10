@@ -175,7 +175,7 @@ cat("On voit que KNN fonctionne mieux que le modele lineaire")#0.01608
 
 3.  Les méthode de régularization \textbf{Ridge Regression, Lasso Regression, Elastic Regression}
 
-```{r eval=FALSE, include=FALSE}
+```{r include=FALSE}
 #Librarie
 if(!require("glmnet")) {
   install.packages("glmnet")
@@ -303,7 +303,7 @@ for(i in 1:10){
 5.  La méthode des \textbf{Splines}
 6.  \textbf{SVM}
 
-```{r eval=FALSE, include=FALSE}
+```{r include=FALSE}
 #Package
 if(!require("kernlab")) {
   install.packages("kernlab")
@@ -317,43 +317,43 @@ M<-5 # nombre de r??p??titions de la validation crois??e
 
 
 #SVM lineaire-----------------------------------
-#Cross validation pour la valeur de C
-errLin<-matrix(0,N,M)
-
-set.seed(69)
-for(k in 1:M){
-  for(i in 1:N){
-    errLin[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="vanilladot",C=CC[i],cross = 5))
-  }
+#CV
+err.svmlin.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  
+  y.test.svmLin <- data.validation[, ncol(data)]
+  svmfit<-ksvm(y~.,data=data.inner,scaled=TRUE,type="eps-svr", kernel="vanilladot",C=0.01)
+  yhat<-predict(svmfit,newdata=data.validation) 
+  err.svmlin.mse[i] <- mean((y.test.svmLin - yhat)^2)
 }
-Err<-rowMeans(errLin)
-plot(CC,Err,type="b",log="x",xlab="C",ylab="CV error")
-which.min(Err)
-
-svmLinFit <- ksvm(y ~.,data = data.train, type="eps-svr",
-                  kernel="vanilladot",C=CC[which.min(Err)])
-svmLinPre <- predict(svmLinFit, newdata = x.test)
-mean((svmLinPre-y.test)^2)#0.04289
+boxplot(err.svmlin.mse)
+mean(err.svmlin.mse) # 0.0427
 
 #SVM laplacien--------------------------------
 #Cross validation pour la valeur de C
 #CC<-c(0.001,0.01,0.1,1,10,100)
 #N<-length(CC)
 #M<-5 # nombre de r??p??titions de la validation crois??e
-errLap<-matrix(0,N,M)
-
+#CV
 set.seed(69)
-for(k in 1:M){
-  for(i in 1:N){
-    errLap[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="laplacedot",C=CC[i],cross = M))
-  }
+err.svmlap.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  y.test.svmLap <- data.validation[, ncol(data)]
+  svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="laplacedot",C=100)
+  yhat<-predict(svmfit,newdata=data.validation) 
+  err.svmlap.mse[i] <- mean((y.test.svmLap - yhat)^2)
 }
-ErrLap<-rowMeans(errLap)
-plot(CC,ErrLap,type="b",log="x",xlab="C",ylab="CV error")
-which.min(ErrLap)
-svmLapFit <- ksvm(y ~.,data = data.train, type="eps-svr",kernel="laplacedot",C=CC[which.min(ErrLap)])
-svmLapPre <- predict(svmLapFit, newdata = x.test)
-mean((svmLapPre-y.test)^2)#0.008838603
+boxplot(err.svmlap.mse)
+mean(err.svmlap.mse) # 0.007916768
 
 
 #SVM Gaussian--------------------------------
@@ -361,26 +361,28 @@ mean((svmLapPre-y.test)^2)#0.008838603
 #CC<-c(0.001,0.01,0.1,1,10,100)
 #N<-length(CC)
 #M<-5 # nombre de r??p??titions de la validation crois??e
-errGau<-matrix(0,N,M)
-
+#CV
 set.seed(69)
-for(k in 1:M){
-  for(i in 1:N){
-    errGau[i,k]<-cross(ksvm(y ~.,data = data.train, type="eps-svr",kernel="rbfdot",C=CC[i],cross = M))
-  }
+err.svmgau.mse <-  rep(0, 10)
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  y.test.svmgau <- data.validation[, ncol(data)]
+  svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="rbfdot",C=100)
+  yhat<-predict(svmfit,newdata=data.validation) 
+  err.svmgau.mse[i] <- mean((y.test.svmgau - yhat)^2)
 }
-ErrGau<-rowMeans(errGau)
-plot(CC,ErrGau,type="b",log="x",xlab="C",ylab="CV error")
-which.min(ErrGau)
-svmGauFit <- ksvm(y ~.,data = data.train, type="eps-svr",kernel="rbfdot",C=100)#CC[which.min(ErrGau)])
-svmGauPre <- predict(svmGauFit, newdata = x.test)
-mean((svmGauPre-y.test)^2)#0.007565551 0.00703(C=100)
+boxplot(err.svmgau.mse)
+mean(err.svmgau.mse) # 0.006989074
 
 ```
 
 7.  \textbf{L'Arbre de Décision}
 
-```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r  message=FALSE, warning=FALSE, include=FALSE}
 #Package
 if(!require("rpart")) {
   install.packages("rpart")
@@ -570,8 +572,8 @@ Enfin, on a appliqué le modèle SVM en utilisant de différent noyaux. Les noya
 knitr::include_graphics(c("./cv.svmLin.bmp","./cv.svmLap.png", "./cv.svmGau.bmp"))
 ```
 
-On a ensuite appluqué les méthodes de régularisation Ridge, Lasso et ElasticNet. La régression Ridge ne permet pas de séléctionner les prédicteurs et elle les inclut tous. La régression Lasso, quant à elle, permet de réduire le coefficient de certains prédicteurs à 0, elle est donc une méthode de sélection de variables. La méthode ElasticNet est comprise entre les deux dernière. Elle permet d'effectuer une sélection de modèle et réduire le coefficient des variables corrélées. On a estimé le paramètre de cette méthode en le faisant varier entre (0, 1).
+# Modèle retenu
+```{r}
+boxplot(err.lin.mse, CV.noscale, err.las.mse, err.rid.mse, err.ela.mse, err.tree.mse, err.tree.mse.prune, err.randomForest.mse, err.svmlin.mse, err.svmlap.mse, err.svmgau.mse)
+```
 
-SPLINES A FAIRE
-
-On a appliqué de différentes méthodes concernant l'arbre des décision. Dans un premier temps, on a appliqué l'arbre de décicion classique. On pourrait savoir l'importance de chaque prédicteur en affichant l'arbre complet. Pour que les résultats soient plus précises, on a ainsi utilisé \textbf{Prune} et \textbf{Bagging}. L'arbre de décision reste inchangé avec \textbf{Prune}

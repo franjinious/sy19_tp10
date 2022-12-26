@@ -337,39 +337,12 @@ set.seed(69)
 # ________________ GAM _________________________________ 
 # ______________________________________________________ 
 library(gam)
-err.gam.mse <- rep(0,10)
+#err.gam.mse <- rep(0,10)
 p.sequences <- seq(1,10)
 
 
-for(i in 1:10){
-  index.outer.cv <- idx.test.outer[[i]]
-  data.inner <- data[-index.outer.cv,]
-  data.validation <- data[index.outer.cv,]
-  data.inner <- data.inner[rs.data.inner[[i]], ]
-  sp.pmin <- rep(0, length(p.sequences))
-  for(p in 1:length(p.sequences)){
-    for(j in 1:10){
-      index.inner.cv <- idx.test.inner[[i]][[j]] 
-      data.train.spline <- data.inner[-index.inner.cv, ]
-      data.test.spline <- data.inner[index.inner.cv, ]
-      model.gam <- gam(y ~s(X1, p.sequences[p])+s(X2,p.sequences[p])+s(X3, p.sequences[p])
-                       +s(X4, p.sequences[p]), data=data.train.spline) 
-      model.pred <- predict(model.gam,newdata=data.test.spline)
-      sp.pmin[p] <-  sp.pmin[p] + mean((data.test.spline[, 9] -model.pred)^2)
-    }
-  }
-  idx.pmin <- which(min(sp.pmin) == sp.pmin)
-  best.pmin <- p.sequences[idx.pmin]
-  
-  data.train <- data.inner
-  data.test <- data.validation
-  
-  model.gam <- gam(y ~s(X1, best.pmin)+s(X2,best.pmin)+s(X3,best.pmin)
-                   +s(X4, best.pmin), data=data.train.spline) 
-  pred <- predict(model.gam, newdata=data.test.spline)
-  err.gam.mse[i] = mean((data.test.spline$y -pred)^2)
-  
-}
+err.gam.mse <- c(0.04574154, 0.04170184, 0.04625588, 0.04802093, 0.04674564,
+                 0.04822308, 0.04900323, 0.04652718, 0.05011012, 0.04637874)
 mean(err.gam.mse) #0.04673483
 
 
@@ -648,11 +621,11 @@ plot(knnFit.scale, type = 'b', col = 'red', xlab = "K(Sans Scaling)")
 
 On a ensuite appluqué les méthodes de régularisation Ridge, Lasso et ElasticNet. La régression Ridge ne permet pas de séléctionner les prédicteurs et elle les inclut tous. La régression Lasso, quant à elle, permet de réduire le coefficient de certains prédicteurs à 0, elle est donc une méthode de sélection de variables. La méthode ElasticNet est comprise entre les deux dernière. Elle permet d'effectuer une sélection de modèle et réduire le coefficient des variables corrélées. On a estimé le paramètre de cette méthode en le faisant varier entre (0, 1).
 
-SPLINES A FAIRE
+Nous avons ensuite estimé les degrés de liberté par validation croisée imbriquée à l'aide de splines naturelles et de lissage en régression linéaire. Nous appliquons également un modèle GAM, qui suppose que l'influence de chaque variable d'entrée est additive : nous remplaçons ainsi le problème d'estimation de fonctions p-dimensionnelles par le problème d'estimation simultanée de p fonctions 1-dimensionnelles.
 
 On a appliqué de différentes méthodes concernant l'arbre des décision. Dans un premier temps, on a appliqué l'arbre de décicion classique. On pourrait savoir l'importance de chaque prédicteur en affichant l'arbre complet. Pour que les résultats soient plus précises, on a ainsi utilisé \textbf{Prune} et \textbf{Bagging}. L'arbre de décision reste inchangé avec \textbf{Prune}
 
-```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="40%", fig.cap=c("A gauche : l'arbre initial; A droite : l'arbre élagué")}
+```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="40%", fig.cap="L'arbre dans les deux cas", fig.align='center'}
 if(!require("rpart")) {
   install.packages("rpart")
   library("rpart")
@@ -675,25 +648,24 @@ model.tree <- rpart(y~., data=data.train, method="anova", control = rpart.contro
 i.min<-which.min(model.tree$cptable[,4])
 cp.opt1<-model.tree$cptable[i.min,1]
 
-pruned_tree <- prune(model.tree, cp=cp.opt1)
-rpart.plot(pruned_tree, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
+#pruned_tree <- prune(model.tree, cp=cp.opt1)
+#rpart.plot(pruned_tree, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
 
 ```
 
 Enfin, on a appliqué le modèle SVM en utilisant de différent noyaux. Les noyaux le plus performants qu'on a observé sont le noyau laplacien et le noyeau gaussien. Pour estimer la valeur de l'hyper-paramètre C, on a utilisé \textbf{Cross validation}
 
 ```{r echo=FALSE, fig.align='default', fig.cap="Le choix de l'hyper-paramètre pour Linear Kernel, Laplace Kernel, Gaussian Kernel", fig.show='hold', out.height="30%", out.width="30%", message=FALSE, warning=FALSE}
-knitr::include_graphics(c("./cv.svmLin.bmp","./cv.svmLap.png", "./cv.svmGau.bmp"))
+knitr::include_graphics(c("./cv.svmLin.bmp","./cv.svmLap.png", "./cv.svmGau.bmp"))  
 ```
-
-
+  
 ## Modèle retenu
 ```{r echo=FALSE, fig.cap="MSE pour Modèle linéaire, KNN, Lasso, Ridge, ElasticNet, Natural Spline, GAM Arbre de décision, Arbre de décicion élagué, Random Forest, SVM Linear Kernel, SVM Laplace Kernel, SVM Gaussian Kernel", warning=FALSE, message=FALSE}
 
 finalData <- as.data.frame(cbind(err.lin.mse, CV.noscale, err.las.mse, err.rid.mse, err.ela.mse, err.splinesnaturel.mse,err.gam.mse, err.tree.mse, err.tree.mse.prune, err.randomForest.mse, err.svmlin.mse, err.svmlap.mse, err.svmgau.mse))
-colnames(finalData) <- c("Linear model", "KNN", "Lasso", "Ridge", "ElasticNet", "Natural Spline", "GAM", "Decision Tree", "Decision Tree with pruning", "RandomForest", "SVM Linear Kernel", "SVM Laplace Kernel", "SVM Gaussian Kernel")
+colnames(finalData) <- c("Linear model", "KNN", "Lasso", "Ridge", "ElasticNet", "NaturalSpline", "GAM", "Decision Tree", "Decision Tree with pruning", "RandomForest", "SVM Linear", "SVM Laplace", "SVM Gaussian")
 
-boxplot(finalData)
+boxplot(finalData, cex.axis=0.4, ylab = "MSE par Cross Validation")
 ```
 
-Nous avons donc obtenu comme modèle le plus performant : modèle \textit{SVM} avec noyau \textit{gaussien}, avec C=100. C'est ce modèle que l'on va utiliser pour prédire les cinématiques du bra d'un robot.
+Nous avons donc obtenu comme modèle le plus performant : modèle \textbf{SVM} avec noyau gaussien, avec C=100. C'est ce modèle que l'on va utiliser pour prédire les cinématiques du bra d'un robot.

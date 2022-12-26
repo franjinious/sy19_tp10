@@ -97,27 +97,6 @@ rpart.plot(pruned_tree, box.palette="RdBu", shadow.col="gray", fallen.leaves=FAL
 
 #Bagging
 
-##FAUX
-if(!require("randomForest")) {
-  install.packages("randomForest")
-  library("randomForest")
-}
-
-K <- 10
-folds <- sample(1:K, n, replace = TRUE)
-CV <- rep(0, 20)
-
-for (i in (1:20)) {
-  for (k in 1:K) {
-    fitRF<-randomForest(y~.,data=data,subset=which(folds != k),mtry = p)
-    preRF <- predict(fitRF, newdata = data[folds == k,])#ֱ????????Ϊ0.02511314
-    CV[i]<-CV[i]+ sum((data[folds==k, 9]- preDT)^2)
-  }
-  CV[i] <- CV[i] / n #0.04723086
-}
-##Fin FAUX
-
-
 group.outer <- rep((1:10), (n/10)+1)[1:n]
 idx.test.outer <- list()
 idx.test.inner <- list()

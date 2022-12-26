@@ -1,8 +1,9 @@
 ---
 title: "Robotics"
 output:
-  pdf_document: 
+  pdf_document:
     latex_engine: xelatex
+  word_document: default
   html_notebook: default
 ---
 
@@ -299,9 +300,121 @@ for(i in 1:10){
 
 ```
 
-4.  Les méthode \textbf{Subset Selection}
-5.  La méthode des \textbf{Splines}
-6.  \textbf{SVM}
+4.  La méthode des \textbf{Splines}
+```{r message=FALSE, warning=FALSE, include=FALSE}
+###########
+# Splines #
+###########
+
+#PRESQUE FINI#
+
+#prepararion des folds
+group.outer <- rep((1:10), (n/10)+1)[1:n]
+idx.test.outer <- list()
+idx.test.inner <- list()
+rs.data.inner <- list()
+for(i in 1:10){
+  index.cv <- which(group.outer==i)
+  idx.test.outer[[i]] <- index.cv
+  n.inner <- n - length(index.cv)
+  rs.data.inner[[i]] <- sample(n.inner)
+  group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
+  idx.test.inner[[i]] <- list()
+  for(j in 1:10){
+    index.inner.cv <- which(group.inner==j)
+    idx.test.inner[[i]][[j]] <- index.inner.cv
+  }
+}
+
+err.splinesnaturel.mse <- rep(0,10)
+err.gam.mse <- rep(0,10)
+
+p.sequences <- seq(1,10)
+
+set.seed(69)
+
+# ______________________________________________________ 
+# ________________ GAM _________________________________ 
+# ______________________________________________________ 
+library(gam)
+err.gam.mse <- rep(0,10)
+p.sequences <- seq(1,10)
+
+
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  sp.pmin <- rep(0, length(p.sequences))
+  for(p in 1:length(p.sequences)){
+    for(j in 1:10){
+      index.inner.cv <- idx.test.inner[[i]][[j]] 
+      data.train.spline <- data.inner[-index.inner.cv, ]
+      data.test.spline <- data.inner[index.inner.cv, ]
+      model.gam <- gam(y ~s(X1, p.sequences[p])+s(X2,p.sequences[p])+s(X3, p.sequences[p])
+                       +s(X4, p.sequences[p]), data=data.train.spline) 
+      model.pred <- predict(model.gam,newdata=data.test.spline)
+      sp.pmin[p] <-  sp.pmin[p] + mean((data.test.spline[, 9] -model.pred)^2)
+    }
+  }
+  idx.pmin <- which(min(sp.pmin) == sp.pmin)
+  best.pmin <- p.sequences[idx.pmin]
+  
+  data.train <- data.inner
+  data.test <- data.validation
+  
+  model.gam <- gam(y ~s(X1, best.pmin)+s(X2,best.pmin)+s(X3,best.pmin)
+                   +s(X4, best.pmin), data=data.train.spline) 
+  pred <- predict(model.gam, newdata=data.test.spline)
+  err.gam.mse[i] = mean((data.test.spline$y -pred)^2)
+  
+}
+mean(err.gam.mse) #0.04673483
+
+
+# ______________________________________________________ 
+# ________________ splines _____________________________
+# ______________________________________________________
+
+# ________________ natural splines _____________________
+err.splinesnaturel.mse <- rep(0,10)
+p.sequences <- seq(1,10)
+
+for (i in 1:10) {
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  
+  sp.pmin <- rep(0, length(p.sequences))
+  for(p in 1:length(p.sequences)){
+    for(j in 1:10){
+      index.inner.cv <- idx.test.inner[[i]][[j]] 
+      data.train.splinesnaturel <- data.inner[-index.inner.cv, ]
+      data.test.splinesnaturel <- data.inner[index.inner.cv, ]
+      model.spline <- lm(y ~ +ns(X1, p.sequences[p])+ns(X2,p.sequences[p])+ns(X3, p.sequences[p])
+                         +ns(X4, p.sequences[p]), data=data.train.splinesnaturel) 
+      model.pred <- predict(model.spline,newdata=data.test.splinesnaturel)
+      sp.pmin[p] <-  sp.pmin[p] + mean((data.test.splinesnaturel$y -model.pred)^2)
+    }
+  }
+  idx.pmin <- which(min(sp.pmin) == sp.pmin)
+  best.pmin <- p.sequences[idx.pmin]
+  
+  data.train.splinesnaturel <- data.inner
+  data.test.splinesnaturel <- data.validation
+  
+  naturalspline <- lm(y ~ +ns(X1, best.pmin)+ns(X2,best.pmin)+ns(X3, best.pmin)
+                      +ns(X4, best.pmin), data=data.train.splinesnaturel)
+  pred <- predict(naturalspline, newdata=data.test.splinesnaturel)
+  err.splinesnaturel.mse[i] = mean((data.test.splinesnaturel$y -pred)^2)
+}
+
+mean(err.splinesnaturel.mse) #0.04714431
+```
+
+5.  \textbf{SVM}
 
 ```{r include=FALSE}
 #Package
@@ -539,7 +652,7 @@ SPLINES A FAIRE
 
 On a appliqué de différentes méthodes concernant l'arbre des décision. Dans un premier temps, on a appliqué l'arbre de décicion classique. On pourrait savoir l'importance de chaque prédicteur en affichant l'arbre complet. Pour que les résultats soient plus précises, on a ainsi utilisé \textbf{Prune} et \textbf{Bagging}. L'arbre de décision reste inchangé avec \textbf{Prune}
 
-```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="50%", fig.cap=c("A gauche : l'arbre initial; A droite : l'arbre élagué")}
+```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="40%", fig.cap=c("A gauche : l'arbre initial; A droite : l'arbre élagué")}
 if(!require("rpart")) {
   install.packages("rpart")
   library("rpart")
@@ -568,12 +681,19 @@ rpart.plot(pruned_tree, box.palette="RdBu", shadow.col="gray", fallen.leaves=FAL
 ```
 
 Enfin, on a appliqué le modèle SVM en utilisant de différent noyaux. Les noyaux le plus performants qu'on a observé sont le noyau laplacien et le noyeau gaussien. Pour estimer la valeur de l'hyper-paramètre C, on a utilisé \textbf{Cross validation}
-```{r echo=FALSE, fig.align='default', fig.cap="Le choix de l'hyper-paramètre pour Linear Kernel, Laplace Kernel, Gaussian Kernel", fig.show='hold', message=FALSE, warning=FALSE, out.height="30%", out.width="30%"}
+
+```{r echo=FALSE, fig.align='default', fig.cap="Le choix de l'hyper-paramètre pour Linear Kernel, Laplace Kernel, Gaussian Kernel", fig.show='hold', out.height="30%", out.width="30%", message=FALSE, warning=FALSE}
 knitr::include_graphics(c("./cv.svmLin.bmp","./cv.svmLap.png", "./cv.svmGau.bmp"))
 ```
 
-# Modèle retenu
-```{r}
-boxplot(err.lin.mse, CV.noscale, err.las.mse, err.rid.mse, err.ela.mse, err.tree.mse, err.tree.mse.prune, err.randomForest.mse, err.svmlin.mse, err.svmlap.mse, err.svmgau.mse)
+
+## Modèle retenu
+```{r echo=FALSE, fig.cap="MSE pour Modèle linéaire, KNN, Lasso, Ridge, ElasticNet, Natural Spline, GAM Arbre de décision, Arbre de décicion élagué, Random Forest, SVM Linear Kernel, SVM Laplace Kernel, SVM Gaussian Kernel", warning=FALSE, message=FALSE}
+
+finalData <- as.data.frame(cbind(err.lin.mse, CV.noscale, err.las.mse, err.rid.mse, err.ela.mse, err.splinesnaturel.mse,err.gam.mse, err.tree.mse, err.tree.mse.prune, err.randomForest.mse, err.svmlin.mse, err.svmlap.mse, err.svmgau.mse))
+colnames(finalData) <- c("Linear model", "KNN", "Lasso", "Ridge", "ElasticNet", "Natural Spline", "GAM", "Decision Tree", "Decision Tree with pruning", "RandomForest", "SVM Linear Kernel", "SVM Laplace Kernel", "SVM Gaussian Kernel")
+
+boxplot(finalData)
 ```
 
+Nous avons donc obtenu comme modèle le plus performant : modèle \textit{SVM} avec noyau \textit{gaussien}, avec C=100. C'est ce modèle que l'on va utiliser pour prédire les cinématiques du bra d'un robot.

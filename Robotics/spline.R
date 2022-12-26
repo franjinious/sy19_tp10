@@ -28,6 +28,91 @@ err.gam.mse <- rep(0,10)
 p.sequences <- seq(1,10)
 
 set.seed(69)
+
+# ______________________________________________________ 
+# ________________ GAM _________________________________ 
+# ______________________________________________________ 
+library(gam)
+err.gam.mse <- rep(0,10)
+p.sequences <- seq(1,10)
+
+
+for(i in 1:10){
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  sp.pmin <- rep(0, length(p.sequences))
+  for(p in 1:length(p.sequences)){
+    for(j in 1:10){
+      index.inner.cv <- idx.test.inner[[i]][[j]] 
+      data.train.spline <- data.inner[-index.inner.cv, ]
+      data.test.spline <- data.inner[index.inner.cv, ]
+      model.gam <- gam(y ~s(X1, p.sequences[p])+s(X2,p.sequences[p])+s(X3, p.sequences[p])
+                       +s(X4, p.sequences[p]), data=data.train.spline) 
+      model.pred <- predict(model.gam,newdata=data.test.spline)
+      sp.pmin[p] <-  sp.pmin[p] + mean((data.test.spline[, 9] -model.pred)^2)
+    }
+  }
+  idx.pmin <- which(min(sp.pmin) == sp.pmin)
+  best.pmin <- p.sequences[idx.pmin]
+  
+  data.train <- data.inner
+  data.test <- data.validation
+  
+  model.gam <- gam(y ~s(X1, best.pmin)+s(X2,best.pmin)+s(X3,best.pmin)
+                   +s(X4, best.pmin), data=data.train.spline) 
+  pred <- predict(model.gam, newdata=data.test.spline)
+  err.gam.mse[i] = mean((data.test.spline[, 9] -pred)^2)
+  
+}
+mean(err.gam.mse) #0.04673483
+
+
+# ______________________________________________________ 
+# ________________ splines _____________________________
+# ______________________________________________________
+
+# ________________ natural splines _____________________
+err.splinesnaturel.mse <- rep(0,10)
+p.sequences <- seq(1,10)
+
+for (i in 1:10) {
+  index.outer.cv <- idx.test.outer[[i]]
+  data.inner <- data[-index.outer.cv,]
+  data.validation <- data[index.outer.cv,]
+  data.inner <- data.inner[rs.data.inner[[i]], ]
+  
+  sp.pmin <- rep(0, length(p.sequences))
+  for(p in 1:length(p.sequences)){
+    for(j in 1:10){
+      index.inner.cv <- idx.test.inner[[i]][[j]] 
+      data.train.splinesnaturel <- data.inner[-index.inner.cv, ]
+      data.test.splinesnaturel <- data.inner[index.inner.cv, ]
+      model.spline <- lm(y ~ +ns(X1, p.sequences[p])+ns(X2,p.sequences[p])+ns(X3, p.sequences[p])
+                         +ns(X4, p.sequences[p]), data=data.train.splinesnaturel) 
+      model.pred <- predict(model.spline,newdata=data.test.splinesnaturel)
+      sp.pmin[p] <-  sp.pmin[p] + mean((data.test.splinesnaturel$y -model.pred)^2)
+    }
+  }
+  idx.pmin <- which(min(sp.pmin) == sp.pmin)
+  best.pmin <- p.sequences[idx.pmin]
+  
+  data.train.splinesnaturel <- data.inner
+  data.test.splinesnaturel <- data.validation
+  
+  naturalspline <- lm(y ~ +ns(X1, best.pmin)+ns(X2,best.pmin)+ns(X3, best.pmin)
+                      +ns(X4, best.pmin), data=data.train.splinesnaturel)
+  pred <- predict(naturalspline, newdata=data.test.splinesnaturel)
+  err.splinesnaturel.mse[i] = mean((data.test.splinesnaturel$y -pred)^2)
+}
+
+mean(err.splinesnaturel.mse) #0.04714431
+
+
+
+
+
 #gam------------------------------------
 #Packages
 if(!require("mgcv")) {

@@ -42,7 +42,7 @@ x.test.scale <- scale(data.test[, -9])
 
 ## Analyse exploratoire
 
-Dans un premier temps, on essaie de regarder la plage de toutesl es données.
+Dans un premier temps, on essaie de regarder la plage de toutes les données.
 
 ```{r echo=FALSE, fig.align='center', out.height='80%', out.width='50%'}
 boxplot(as.data.frame(data[, 1:8]))
@@ -63,7 +63,7 @@ corrplot(mcor, type="upper",method = "number",order="hclust", tl.col="black", tl
 
 ```
 
-On constate qu'il existe pas de corrélations significatives entre les variables, seule de faibles corrélations entre la réponse et les prédicteurs. Ce graphe exclut le besoin d'enlever certaines variables puisqu'elles sont peu corrélées. On confirme cette observation en faisant une ACP
+On constate qu'il existe pas de corrélations significatives entre les variables, seule de faibles corrélations entre la réponse et les prédicteurs. Ce graphe exclut le besoin d'enlever certaines variables puisqu'elles sont peu corrélées. On confirme cette observation en faisant une ACP:
 
 ```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.height='80%', out.width='50%'}
 if(!require("FactoMineR")) {
@@ -90,7 +90,7 @@ On test sur le jeu de données \texttt{Robotics} les méthodes suivantes, que l'
 
 1. Modèle linéaire
 
-```{r include=FALSE}
+```{r eval=FALSE, include=FALSE}
 group.outer <- rep((1:10), (n/10)+1)[1:n]
 idx.test.outer <- list()
 idx.test.inner <- list()
@@ -129,7 +129,7 @@ mean(err.lin.mse) #0.04185472
 
 2.  La méthode des \textbf{KNN}
 
-```{r include=FALSE}
+```{r eval=FALSE, include=FALSE}
 if(!require("FNN")) {
   install.packages("FNN")
   library("FNN")
@@ -176,7 +176,7 @@ cat("On voit que KNN fonctionne mieux que le modele lineaire")#0.01608
 
 3.  Les méthode de régularization \textbf{Ridge Regression, Lasso Regression, Elastic Regression}
 
-```{r include=FALSE}
+```{r eval=FALSE, include=FALSE}
 #Librarie
 if(!require("glmnet")) {
   install.packages("glmnet")
@@ -301,7 +301,7 @@ for(i in 1:10){
 ```
 
 4.  La méthode des \textbf{Splines}
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 ###########
 # Splines #
 ###########
@@ -389,7 +389,7 @@ mean(err.splinesnaturel.mse) #0.04714431
 
 5.  \textbf{SVM}
 
-```{r include=FALSE}
+```{r eval=FALSE, include=FALSE}
 #Package
 if(!require("kernlab")) {
   install.packages("kernlab")
@@ -468,7 +468,7 @@ mean(err.svmgau.mse) # 0.006989074
 
 7.  \textbf{L'Arbre de Décision}
 
-```{r  message=FALSE, warning=FALSE, include=FALSE}
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 #Package
 if(!require("rpart")) {
   install.packages("rpart")
@@ -619,7 +619,7 @@ plot(knnFit.scale, type = 'b', col = 'red', xlab = "K(Sans Scaling)")
 
 ```
 
-On a ensuite appluqué les méthodes de régularisation Ridge, Lasso et ElasticNet. La régression Ridge ne permet pas de séléctionner les prédicteurs et elle les inclut tous. La régression Lasso, quant à elle, permet de réduire le coefficient de certains prédicteurs à 0, elle est donc une méthode de sélection de variables. La méthode ElasticNet est comprise entre les deux dernière. Elle permet d'effectuer une sélection de modèle et réduire le coefficient des variables corrélées. On a estimé le paramètre de cette méthode en le faisant varier entre (0, 1).
+On a ensuite appliqué les méthodes de régularisation Ridge, Lasso et ElasticNet. La régression Ridge ne permet pas de séléctionner les prédicteurs et elle les inclut tous. La régression Lasso, quant à elle, permet de réduire le coefficient de certains prédicteurs à 0, elle est donc une méthode de sélection de variables. La méthode ElasticNet est comprise entre les deux dernière. Elle permet d'effectuer une sélection de modèle et réduire le coefficient des variables corrélées. On a estimé le paramètre de cette méthode en le faisant varier entre (0, 1).
 
 Nous avons ensuite estimé les degrés de liberté par validation croisée imbriquée à l'aide de splines naturelles et de lissage en régression linéaire. Nous appliquons également un modèle GAM, qui suppose que l'influence de chaque variable d'entrée est additive : nous remplaçons ainsi le problème d'estimation de fonctions p-dimensionnelles par le problème d'estimation simultanée de p fonctions 1-dimensionnelles.
 
@@ -641,15 +641,17 @@ if(!require("randomForest")) {
   library("randomForest")
 }
 
-fitDT<-rpart(y~.,data=data.train,method="anova")
-rpart.plot(fitDT, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
+#fitDT<-rpart(y~.,data=data.train,method="anova")
+#rpart.plot(fitDT, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
 
-model.tree <- rpart(y~., data=data.train, method="anova", control = rpart.control(xval = 10, minbucket = 2))
-i.min<-which.min(model.tree$cptable[,4])
-cp.opt1<-model.tree$cptable[i.min,1]
+#model.tree <- rpart(y~., data=data.train, method="anova", control = rpart.control(xval = 10, minbucket = 2))
+#i.min<-which.min(model.tree$cptable[,4])
+#cp.opt1<-model.tree$cptable[i.min,1]
 
 #pruned_tree <- prune(model.tree, cp=cp.opt1)
 #rpart.plot(pruned_tree, box.palette="RdBu", shadow.col="gray", fallen.leaves=FALSE)# Arbre initial
+knitr::include_graphics("./tree.png")  
+
 
 ```
 
@@ -662,10 +664,12 @@ knitr::include_graphics(c("./cv.svmLin.bmp","./cv.svmLap.png", "./cv.svmGau.bmp"
 ## Modèle retenu
 ```{r echo=FALSE, fig.cap="MSE pour Modèle linéaire, KNN, Lasso, Ridge, ElasticNet, Natural Spline, GAM Arbre de décision, Arbre de décicion élagué, Random Forest, SVM Linear Kernel, SVM Laplace Kernel, SVM Gaussian Kernel", warning=FALSE, message=FALSE}
 
-finalData <- as.data.frame(cbind(err.lin.mse, CV.noscale, err.las.mse, err.rid.mse, err.ela.mse, err.splinesnaturel.mse,err.gam.mse, err.tree.mse, err.tree.mse.prune, err.randomForest.mse, err.svmlin.mse, err.svmlap.mse, err.svmgau.mse))
-colnames(finalData) <- c("Linear model", "KNN", "Lasso", "Ridge", "ElasticNet", "NaturalSpline", "GAM", "Decision Tree", "Decision Tree with pruning", "RandomForest", "SVM Linear", "SVM Laplace", "SVM Gaussian")
+#finalData <- as.data.frame(cbind(err.lin.mse, CV.noscale, err.las.mse, err.rid.mse, err.ela.mse, err.splinesnaturel.mse,err.gam.mse, err.tree.mse, err.tree.mse.prune, err.randomForest.mse, err.svmlin.mse, err.svmlap.mse, err.svmgau.mse))
+#colnames(finalData) <- c("Linear model", "KNN", "Lasso", "Ridge", "ElasticNet", "NaturalSpline", "GAM", "Decision Tree", "Decision Tree with pruning", "RandomForest", "SVM Linear", "SVM Laplace", "SVM Gaussian")
 
-boxplot(finalData, cex.axis=0.4, ylab = "MSE par Cross Validation")
+#boxplot(finalData, cex.axis=0.4, ylab = "MSE par Cross Validation")
+knitr::include_graphics("./boxplot_final.png")  
+
 ```
 
 Nous avons donc obtenu comme modèle le plus performant : modèle \textbf{SVM} avec noyau gaussien, avec C=100. C'est ce modèle que l'on va utiliser pour prédire les cinématiques du bra d'un robot.

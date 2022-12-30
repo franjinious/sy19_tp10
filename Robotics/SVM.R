@@ -3,13 +3,13 @@
 #######
 
 #Preparation des indexes-----------------
-group.outer <- rep((1:10), (n/10)+1)[1:n]
+group.outer <- rep((1:10), (n/10)+1)[1:n]#生成4000个1~10的列表
 idx.test.outer <- list()
 idx.test.inner <- list()
 rs.data.inner <- list()
 for(i in 1:10){
   index.cv <- which(group.outer==i)
-  idx.test.outer[[i]] <- index.cv
+  idx.test.outer[[i]] <- index.cv #取出所有1~10分别对应的位置
   n.inner <- n - length(index.cv)
   rs.data.inner[[i]] <- sample(n.inner)
   group.inner <- rep((1:10), (n.inner/10)+1)[1:n.inner]
@@ -56,9 +56,9 @@ mean((svmLinPre-y.test)^2)#0.04289
 #CV
 err.svmlin.mse <-  rep(0, 10)
 for(i in 1:10){
-  index.outer.cv <- idx.test.outer[[i]]
-  data.inner <- data[-index.outer.cv,]
-  data.validation <- data[index.outer.cv,]
+  index.outer.cv <- idx.test.outer[[i]] #每次取出一组数
+  data.inner <- data[-index.outer.cv,] #用于训练模型
+  data.validation <- data[index.outer.cv,] #用于测试
   
   
   y.test.svmLin <- data.validation[, ncol(data)]

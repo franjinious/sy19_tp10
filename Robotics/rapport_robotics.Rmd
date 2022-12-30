@@ -625,7 +625,7 @@ Nous avons ensuite estimé les degrés de liberté par validation croisée imbri
 
 On a appliqué de différentes méthodes concernant l'arbre des décision. Dans un premier temps, on a appliqué l'arbre de décicion classique. On pourrait savoir l'importance de chaque prédicteur en affichant l'arbre complet. Pour que les résultats soient plus précises, on a ainsi utilisé \textbf{Prune} et \textbf{Bagging}. L'arbre de décision reste inchangé avec \textbf{Prune}
 
-```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="40%", fig.cap="L'arbre dans les deux cas", fig.align='center'}
+```{r echo=FALSE, fig.show='hold', message=FALSE, warning=FALSE, out.height="50%", out.width="50%", fig.cap="L'arbre dans les deux cas", fig.align='center'}
 if(!require("rpart")) {
   install.packages("rpart")
   library("rpart")

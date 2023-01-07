@@ -134,27 +134,106 @@ mean((svmGauPre-y.test)^2)#0.007565551 0.00703(C=100)
 set.seed(69)
 err.svmgau.mse <-  rep(0, 10)
 for(i in 1:10){
+    index.outer.cv <- idx.test.outer[[i]]
+    data.inner <- data[-index.outer.cv,]
+    data.validation <- data[index.outer.cv,]
+    
+    data.inner <- data.inner[rs.data.inner[[i]], ]
+    y.test.svmgau <- data.validation[, ncol(data)]
+    svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="rbfdot",C=100, epsilon=0.2)
+    yhat<-predict(svmfit,newdata=data.validation) 
+    err.svmgau.mse[i] <- mean((y.test.svmgau - yhat)^2)
+    
+  }
+boxplot(err.svmgau.mse)
+mean(err.svmgau.mse) # 0.006989074
+
+
+#test avec epsilon--------------------------
+set.seed(69)
+err.svmgau.mse1 <-  rep(0, 10)
+for(i in 1:10){
+    index.outer.cv <- idx.test.outer[[i]]
+    data.inner <- data[-index.outer.cv,]
+    data.validation <- data[index.outer.cv,]
+    
+    data.inner <- data.inner[rs.data.inner[[i]], ]
+    y.test.svmgau <- data.validation[, ncol(data)]
+    svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="rbfdot",C=100, epsilon = 0.2)
+    yhat<-predict(svmfit,newdata=data.validation) 
+    err.svmgau.mse[i] <- mean((y.test.svmgau - yhat)^2)
+    
+}
+boxplot(err.svmgau.mse1)
+mean(err.svmgau.mse1) # 0.006989074
+
+
+#CARET------------------
+if(!require("caret")) {
+  install.packages("caret")
+  library("caret")
+}
+models <- getModelInfo("svmRadial", regex = FALSE)[[1]]
+preProcValues = preProcess(data.train, method = c("center", "scale")) 
+processData = predict(preProcValues,data.train)
+x = processData[,-9]
+y = processData[, 9]
+set.seed(69)
+models$grid(x,y,3)
+
+
+set.seed(69)
+train_control <- trainControl(method="repeatedcv", number=10, repeats=3)
+svm1 <- train(y ~ .,
+              data = data.train,
+              method = "svmRadial",
+              preProcess = c("center", "scale"),
+              trControl = trainControl(method = "cv", number = 5))
+pre1 <- predict(svm1, newdata = data.test)
+err1 <- mean((pre1 - data.test[, 9])^2)
+#View the model
+plot(svm1, type = 'b', col = 'blue', xlab = "K(Scale)")
+
+set.seed(69)
+err.svmCaret.mse <-  rep(0, 10)
+for(i in 1:10){
   index.outer.cv <- idx.test.outer[[i]]
   data.inner <- data[-index.outer.cv,]
   data.validation <- data[index.outer.cv,]
   
   data.inner <- data.inner[rs.data.inner[[i]], ]
   y.test.svmgau <- data.validation[, ncol(data)]
-  svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="rbfdot",C=100)
-  yhat<-predict(svmfit,newdata=data.validation) 
-  err.svmgau.mse[i] <- mean((y.test.svmgau - yhat)^2)
+  svm1 <- train(y ~., data = data.train, method = "svmRadial", trControl = train_control)
+
+  #svmfit<-ksvm(y~.,data=data.inner,type="eps-svr", kernel="rbfdot",C=100)
+  yhat<-predict(svm1,newdata=data.validation) 
+  err.svmCaret.mse[i] <- mean((y.test.svmgau - yhat)^2)
 }
-boxplot(err.svmgau.mse)
-mean(err.svmgau.mse) # 0.006989074
+boxplot(err.svmCaret.mse)
+mean(err.svmCaret.mse) # 0.006989074
 
 
-#CARET------------------
-#if(!require("caret")) {
-#  install.packages("caret")
-#  library("caret")
-#}
-#set.seed(69)
-#train_control <- trainControl(method="repeatedcv", number=10, repeats=3)
-#svm1 <- train(y ~., data = data.train, method = "svmLinear", trControl = train_control, tuneGrid = expand.grid(C = seq(0, 2, length = 20)))
-#View the model
-#plot(svm1, , type = 'b', col = 'blue', xlab = "K(Scale)")
+#hzf-------------------------
+library('kernlab')
+
+ksvm.fit <-  ksvm(y~., data=data.train,type="eps-svr", C=30, epsilon=0.1)
+#ksvm(x=x.train[,1:9], y=x.train$y, type=)
+ksvm.pred <- predict(ksvm.fit, data.test)
+sqrt(mean((data.test$y - ksvm.pred)^2))
+
+
+cost <- c(2^(1:7))
+epsilon = seq(0,1,0.1)
+
+err <- rep(0, 11)
+#  matrix(nrow=length(cost), ncol=length(epsilon))
+
+  for (j in 1:length(epsilon)) {
+    err[j] <- cross(ksvm(y~., data=data.train,type="eps-svr", cross = 5, C=100,epsilon=epsilon[j]))
+  }
+
+
+
+which.min(err)
+epsilon[2] 
+

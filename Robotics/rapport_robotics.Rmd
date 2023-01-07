@@ -665,6 +665,7 @@ knitr::include_graphics(c("./cv.svmLin.bmp","./cv.svmLap.png", "./cv.svmGau.bmp"
 ```{r echo=FALSE, fig.cap="MSE pour Modèle linéaire, KNN, Lasso, Ridge, ElasticNet, Natural Spline, GAM Arbre de décision, Arbre de décicion élagué, Random Forest, SVM Linear Kernel, SVM Laplace Kernel, SVM Gaussian Kernel", warning=FALSE, message=FALSE}
 
 #finalData <- as.data.frame(cbind(err.lin.mse, CV.noscale, err.las.mse, err.rid.mse, err.ela.mse, err.splinesnaturel.mse,err.gam.mse, err.tree.mse, err.tree.mse.prune, err.randomForest.mse, err.svmlin.mse, err.svmlap.mse, err.svmgau.mse))
+
 #colnames(finalData) <- c("Linear model", "KNN", "Lasso", "Ridge", "ElasticNet", "NaturalSpline", "GAM", "Decision Tree", "Decision Tree with pruning", "RandomForest", "SVM Linear", "SVM Laplace", "SVM Gaussian")
 
 #boxplot(finalData, cex.axis=0.4, ylab = "MSE par Cross Validation")
